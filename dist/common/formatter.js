@@ -161,6 +161,7 @@ Formatter.prototype._keyDown = function (evt) {
   if (k && utils.isDelKeyDown(evt.which, evt.keyCode)) {
     // Process the keyCode and prevent default
     this._processKey(null, k);
+    //$(this.el).trigger('change');
     return utils.preventDefault(evt);
   }
 };
@@ -181,6 +182,7 @@ Formatter.prototype._keyPress = function (evt) {
   // Process the keyCode and prevent default
   if (!utils.isDelKeyPress(evt.which, evt.keyCode) && !isSpecial && !utils.isModifier(evt)) {
     this._processKey(String.fromCharCode(k), false);
+    //$(this.el).trigger('change');
     return utils.preventDefault(evt);
   }
 };
@@ -192,6 +194,7 @@ Formatter.prototype._keyPress = function (evt) {
 Formatter.prototype._paste = function (evt) {
   // Process the clipboard paste and prevent default
   this._processKey(utils.getClip(evt), false);
+  //$(this.el).trigger('change');
   return utils.preventDefault(evt);
 };
 

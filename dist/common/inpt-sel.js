@@ -63,7 +63,19 @@ inptSel.get = function (el) {
 // Set the caret position at a specified location
 //
 inptSel.set = function (el, pos) {
-  // Normalize pos
+
+  var valLength = el.value ? el.value.length : 0;
+
+  //Android wierd bug fix. On 4.2-4.3 Androids (AOSP browser, Chrome) caret jumps to input start if caret-end
+  //position out of input string range
+  if (typeof pos === 'object'){
+      pos.end = pos.end > valLength ? valLength : pos.end;
+  }
+  else{
+      pos = pos > valLength ? valLength : pos;
+  }
+
+    // Normalize pos
   if (typeof pos !== 'object') {
     pos = { begin: pos, end: pos };
   }

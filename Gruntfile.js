@@ -131,11 +131,9 @@ grunt.initConfig({
       banner: '/*!\n' +
         ' * v<%= pkg.version %>\n' +
         ' * Copyright (c) 2014 First Opinion\n' +
-        ' * formatter.js is open sourced under the MIT license.\n' +
+        ' * fork of formatter.js is open sourced under the MIT license.\n' +
         ' *\n' +
-        ' * thanks to digitalBush/jquery.maskedinput for some of the trickier\n' +
-        ' * keycode handling\n' +
-        ' */ \n\n',
+        ' * By kaboomfactory - https://github.com/kaboomfactory/formatter.js  - \n */',
       stripBanners: true
     },
     umd: {

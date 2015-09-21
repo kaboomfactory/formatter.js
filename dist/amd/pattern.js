@@ -6,77 +6,95 @@
  */
 
 
-define(function () {
+define(['utils'], function (utils) {
 
 
 // Define module
-var pattern = {};
+    var pattern = {};
 
 // Match information
-var DELIM_SIZE = 4;
+    var DELIM_SIZE = 4;
 
 // Our regex used to parse
-var regexp  = new RegExp('{{([^}]+)}}', 'g');
+    var regexp = new RegExp('{{([^}]+)}}', 'g');
 
 //
 // Helper method to parse pattern str
 //
-var getMatches = function (pattern) {
-  // Populate array of matches
-  var matches = [],
-      match;
-  while(match = regexp.exec(pattern)) {
-    matches.push(match);
-  }
+    var getMatches = function (pattern) {
+        // Populate array of matches
+        var matches = [],
+            match;
+        while (match = regexp.exec(pattern)) {
+            matches.push(match);
+        }
 
-  return matches;
-};
+        return matches;
+    };
 
 //
 // Create an object holding all formatted characters
 // with corresponding positions
 //
-pattern.parse = function (pattern) {
-  // Our obj to populate
-  var info = { inpts: {}, chars: {} };
+    pattern.parse = function (pattern) {
+        // Our obj to populate
 
-  // Pattern information
-  var matches = getMatches(pattern),
-      pLength = pattern.length;
+        var props = {};
+        if(typeof pattern === 'object' && !(pattern instanceof String)){
+            props = utils.extend(props, pattern);
+            pattern = props.format;
+        }
+        var info = {inpts: {}, chars: {}};
 
-  // Counters
-  var mCount = 0,
-      iCount = 0,
-      i = 0;
+        // Pattern information
+        var matches = getMatches(pattern),
+            pLength = pattern.length;
 
-  // Add inpts, move to end of match, and process
-  var processMatch = function (val) {
-    var valLength = val.length;
-    for (var j = 0; j < valLength; j++) {
-      info.inpts[iCount] = val.charAt(j);
-      iCount++;
-    }
-    mCount ++;
-    i += (val.length + DELIM_SIZE - 1);
-  };
+        // Counters
+        var mCount = 0,
+            iCount = 0,
+            i = 0;
 
-  // Process match or add chars
-  for (i; i < pLength; i++) {
-    if (mCount < matches.length && i === matches[mCount].index) {
-      processMatch(matches[mCount][1]);
-    } else {
-      info.chars[i - (mCount * DELIM_SIZE)] = pattern.charAt(i);
-    }
-  }
+        // Add inpts, move to end of match, and process
+        var processMatch = function (val) {
+            var valLength = val.length;
+            for (var j = 0; j < valLength; j++) {
+                info.inpts[iCount] = val.charAt(j);
+                iCount++;
+            }
+            mCount++;
+            i += (val.length + DELIM_SIZE - 1);
+        };
 
-  // Set mLength and return
-  info.mLength = i - (mCount * DELIM_SIZE);
-  return info;
-};
+        // Process match or add chars
+        for (i; i < pLength; i++) {
+            if (mCount < matches.length && i === matches[mCount].index) {
+                processMatch(matches[mCount][1]);
+            } else {
+                info.chars[i - (mCount * DELIM_SIZE)] = pattern.charAt(i);
+            }
+        }
+
+        // Set mLength and return
+        info.mLength = i - (mCount * DELIM_SIZE);
+
+        if(props.cloak){
+            var parsedCloak = {};
+            for (var j = 0; j < props.cloak.length; j++) {
+                var cloakChar = props.cloak[j];
+                if(cloakChar === '*'){
+                    parsedCloak[j] = cloakChar;
+                }
+            }
+            info.cloak = parsedCloak;
+        }
+
+        return info;
+    };
 
 
 // Expose
-return pattern;
+    return pattern;
 
 
 });

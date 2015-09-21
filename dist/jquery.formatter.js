@@ -1,13 +1,10 @@
 /*!
  * v0.1.5
  * Copyright (c) 2014 First Opinion
- * formatter.js is open sourced under the MIT license.
+ * fork of formatter.js is open sourced under the MIT license.
  *
- * thanks to digitalBush/jquery.maskedinput for some of the trickier
- * keycode handling
- */ 
-
-//
+ * By kaboomfactory - https://github.com/kaboomfactory/formatter.js  - 
+ *///
 // Uses CommonJS, AMD or browser globals to create a jQuery plugin.
 //
 // Similar to jqueryPlugin.js but also tries to
@@ -29,69 +26,6 @@
 }(this, function (jQuery) {
 
 
-/*
- * pattern.js
- *
- * Utilities to parse str pattern and return info
- *
- */
-var pattern = function () {
-  // Define module
-  var pattern = {};
-  // Match information
-  var DELIM_SIZE = 4;
-  // Our regex used to parse
-  var regexp = new RegExp('{{([^}]+)}}', 'g');
-  //
-  // Helper method to parse pattern str
-  //
-  var getMatches = function (pattern) {
-    // Populate array of matches
-    var matches = [], match;
-    while (match = regexp.exec(pattern)) {
-      matches.push(match);
-    }
-    return matches;
-  };
-  //
-  // Create an object holding all formatted characters
-  // with corresponding positions
-  //
-  pattern.parse = function (pattern) {
-    // Our obj to populate
-    var info = {
-      inpts: {},
-      chars: {}
-    };
-    // Pattern information
-    var matches = getMatches(pattern), pLength = pattern.length;
-    // Counters
-    var mCount = 0, iCount = 0, i = 0;
-    // Add inpts, move to end of match, and process
-    var processMatch = function (val) {
-      var valLength = val.length;
-      for (var j = 0; j < valLength; j++) {
-        info.inpts[iCount] = val.charAt(j);
-        iCount++;
-      }
-      mCount++;
-      i += val.length + DELIM_SIZE - 1;
-    };
-    // Process match or add chars
-    for (i; i < pLength; i++) {
-      if (mCount < matches.length && i === matches[mCount].index) {
-        processMatch(matches[mCount][1]);
-      } else {
-        info.chars[i - mCount * DELIM_SIZE] = pattern.charAt(i);
-      }
-    }
-    // Set mLength and return
-    info.mLength = i - mCount * DELIM_SIZE;
-    return info;
-  };
-  // Expose
-  return pattern;
-}();
 /*
  * utils.js
  *
@@ -295,6 +229,84 @@ var utils = function () {
   return utils;
 }();
 /*
+ * pattern.js
+ *
+ * Utilities to parse str pattern and return info
+ *
+ */
+var pattern = function (utils) {
+  // Define module
+  var pattern = {};
+  // Match information
+  var DELIM_SIZE = 4;
+  // Our regex used to parse
+  var regexp = new RegExp('{{([^}]+)}}', 'g');
+  //
+  // Helper method to parse pattern str
+  //
+  var getMatches = function (pattern) {
+    // Populate array of matches
+    var matches = [], match;
+    while (match = regexp.exec(pattern)) {
+      matches.push(match);
+    }
+    return matches;
+  };
+  //
+  // Create an object holding all formatted characters
+  // with corresponding positions
+  //
+  pattern.parse = function (pattern) {
+    // Our obj to populate
+    var props = {};
+    if (typeof pattern === 'object' && !(pattern instanceof String)) {
+      props = utils.extend(props, pattern);
+      pattern = props.format;
+    }
+    var info = {
+      inpts: {},
+      chars: {}
+    };
+    // Pattern information
+    var matches = getMatches(pattern), pLength = pattern.length;
+    // Counters
+    var mCount = 0, iCount = 0, i = 0;
+    // Add inpts, move to end of match, and process
+    var processMatch = function (val) {
+      var valLength = val.length;
+      for (var j = 0; j < valLength; j++) {
+        info.inpts[iCount] = val.charAt(j);
+        iCount++;
+      }
+      mCount++;
+      i += val.length + DELIM_SIZE - 1;
+    };
+    // Process match or add chars
+    for (i; i < pLength; i++) {
+      if (mCount < matches.length && i === matches[mCount].index) {
+        processMatch(matches[mCount][1]);
+      } else {
+        info.chars[i - mCount * DELIM_SIZE] = pattern.charAt(i);
+      }
+    }
+    // Set mLength and return
+    info.mLength = i - mCount * DELIM_SIZE;
+    if (props.cloak) {
+      var parsedCloak = {};
+      for (var j = 0; j < props.cloak.length; j++) {
+        var cloakChar = props.cloak[j];
+        if (cloakChar === '*') {
+          parsedCloak[j] = cloakChar;
+        }
+      }
+      info.cloak = parsedCloak;
+    }
+    return info;
+  };
+  // Expose
+  return pattern;
+}(utils);
+/*
 * pattern-matcher.js
 *
 * Parses a pattern specification and determines appropriate pattern for an
@@ -459,6 +471,7 @@ var formatter = function (patternMatcher, inptSel, utils) {
     'a': /[A-Za-z]/,
     '*': /[A-Za-z0-9]/
   };
+  var cloakingForm;
   //
   // Class Constructor - Called with new Formatter(el, opts)
   // Responsible for setting up required instance variables, and
@@ -472,7 +485,21 @@ var formatter = function (patternMatcher, inptSel, utils) {
     if (!self.el) {
       throw new TypeError('Must provide an existing element');
     }
-    // Merge opts with defaults
+    var hidden = self.el.cloneNode();
+    // meditate dat!
+    hidden.setAttribute('type', 'hidden');
+    hidden.removeAttribute('id');
+    hidden.classList.add('__formatter_store');
+    self.el.classList.add('__formatter_input');
+    self.el.parentElement.insertBefore(hidden, self.el.nextSibling);
+    self.store = hidden;
+    if (!cloakingForm) {
+      cloakingForm = document.createElement('form');
+      cloakingForm.setAttribute('id', '__formatter__cloaking_form');
+      cloakingForm.setAttribute('action', '#');
+      document.body.appendChild(cloakingForm);
+    }
+    self.el.setAttribute('form', '__formatter__cloaking_form');
     self.opts = utils.extend({}, defaults, opts);
     // 1 pattern is special case
     if (typeof self.opts.pattern !== 'undefined') {
@@ -532,7 +559,7 @@ var formatter = function (patternMatcher, inptSel, utils) {
     this.opts.patterns = str ? this._specFromSinglePattern(str) : this.opts.patterns;
     // Get current state
     this.sel = inptSel.get(this.el);
-    this.val = this.el.value;
+    this.val = this.store.value;
     // Init values
     this.delta = 0;
     // Remove all formatted chars from val
@@ -560,6 +587,7 @@ var formatter = function (patternMatcher, inptSel, utils) {
       this.mLength = newPattern.mLength;
       this.chars = newPattern.chars;
       this.inpts = newPattern.inpts;
+      this.cloak = newPattern.cloak;
     }
   };
   //
@@ -632,7 +660,7 @@ var formatter = function (patternMatcher, inptSel, utils) {
   Formatter.prototype._processKey = function (chars, delKey, ignoreCaret) {
     // Get current state
     this.sel = inptSel.get(this.el);
-    this.val = this.el.value;
+    this.val = this.store.value;
     // Init values
     this.delta = 0;
     // If chars were highlighted, we need to remove them
@@ -700,7 +728,13 @@ var formatter = function (patternMatcher, inptSel, utils) {
     // Add formatted characters
     this._addChars();
     // Set value and adhere to maxLength
-    this.el.value = this.val.substr(0, this.mLength);
+    this.store.value = this.val.substr(0, this.mLength);
+    if (this.cloak) {
+      var cloackedInput = this.cloakInput();
+      this.el.value = cloackedInput.substr(0, this.mLength);
+    } else {
+      this.el.value = this.val.substr(0, this.mLength);
+    }
     // Set new caret position
     if (typeof ignoreCaret === 'undefined' || ignoreCaret === false) {
       inptSel.set(this.el, this.newPos);
@@ -826,6 +860,15 @@ var formatter = function (patternMatcher, inptSel, utils) {
   //
   Formatter.prototype._specFromSinglePattern = function (patternStr) {
     return [{ '*': patternStr }];
+  };
+  Formatter.prototype.cloakInput = function () {
+    var cloackedVal = this.store.value;
+    for (var i = 0; i < cloackedVal.length; i++) {
+      if (this.cloak[i] && !this.hldrs[i]) {
+        cloackedVal = cloackedVal.substr(0, i) + this.cloak[i] + cloackedVal.substr(i + 1);
+      }
+    }
+    return cloackedVal;
   };
   // Expose
   return Formatter;

@@ -83,7 +83,11 @@ inptSel.set = function (el, pos) {
   // If normal browser
   if (el.setSelectionRange) {
     el.focus();
-    el.setSelectionRange(pos.begin, pos.end);
+      //I.E. throws exception, if setSelectionRange calls before html will rendered.
+      //So, let's give it time to render, before setSelectionRange will called.
+      setTimeout(function() {
+          el.setSelectionRange(pos.begin, pos.end);
+      }, 0);
 
   // IE = TextRange fun
   } else if (el.createTextRange) {

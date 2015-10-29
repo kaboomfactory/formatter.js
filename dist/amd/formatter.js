@@ -42,14 +42,22 @@ define([
         if (!self.el) {
             throw new TypeError('Must provide an existing element');
         }
+        var input = document.createElement('input');
+        self.el.parentElement.insertBefore(input, self.el);
 
-        var hidden = self.el.cloneNode();  // meditate dat!
-        hidden.setAttribute('type', 'hidden');
-        hidden.removeAttribute('id');
-        hidden.classList.add('__formatter_store');
-        self.el.classList.add('__formatter_input');
-        self.el.parentElement.insertBefore(hidden, self.el.nextSibling);
+        var hidden = self.el;
+        self.el = input;
         self.store = hidden;
+
+
+        hidden.style.display = "none";
+        input.setAttribute('type', 'text');
+        input.className = hidden.className;
+
+        hidden.classList.add('__formatter_store');
+        input.classList.add('__formatter_input');
+
+
 
 
         if(!cloakingForm){
@@ -312,6 +320,16 @@ define([
         this.sel.end++;
         this.sel.begin++;
     };
+
+    Formatter.prototype.formatValue = function (ignoreCaret) {
+        if(!this.store.value) return;
+
+        this.val = this.store.value;
+        this.sel = inptSel.get(this.el);
+        this._formatValue(ignoreCaret);
+
+    }
+
 
 //
 // @private

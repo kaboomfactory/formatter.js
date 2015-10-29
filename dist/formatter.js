@@ -452,7 +452,11 @@ var inptSel = function () {
     // If normal browser
     if (el.setSelectionRange) {
       el.focus();
-      el.setSelectionRange(pos.begin, pos.end);
+      //I.E. throws exception, if setSelectionRange calls before html will rendered.
+      //So, let's give it time to render, before setSelectionRange will called.
+      setTimeout(function () {
+        el.setSelectionRange(pos.begin, pos.end);
+      }, 0);
     } else if (el.createTextRange) {
       var range = el.createTextRange();
       range.collapse(true);
@@ -497,14 +501,16 @@ var formatter = function (patternMatcher, inptSel, utils) {
     if (!self.el) {
       throw new TypeError('Must provide an existing element');
     }
-    var hidden = self.el.cloneNode();
-    // meditate dat!
-    hidden.setAttribute('type', 'hidden');
-    hidden.removeAttribute('id');
-    hidden.classList.add('__formatter_store');
-    self.el.classList.add('__formatter_input');
-    self.el.parentElement.insertBefore(hidden, self.el.nextSibling);
+    var input = document.createElement('input');
+    self.el.parentElement.insertBefore(input, self.el);
+    var hidden = self.el;
+    self.el = input;
     self.store = hidden;
+    hidden.style.display = 'none';
+    input.setAttribute('type', 'text');
+    input.className = hidden.className;
+    hidden.classList.add('__formatter_store');
+    input.classList.add('__formatter_input');
     if (!cloakingForm) {
       cloakingForm = document.createElement('form');
       cloakingForm.setAttribute('id', '__formatter__cloaking_form');
@@ -722,6 +728,13 @@ var formatter = function (patternMatcher, inptSel, utils) {
   Formatter.prototype._nextPos = function () {
     this.sel.end++;
     this.sel.begin++;
+  };
+  Formatter.prototype.formatValue = function (ignoreCaret) {
+    if (!this.store.value)
+      return;
+    this.val = this.store.value;
+    this.sel = inptSel.get(this.el);
+    this._formatValue(ignoreCaret);
   };
   //
   // @private
